@@ -2,6 +2,7 @@ package com.emobile.springtodo.repository;
 
 
 import com.emobile.springtodo.model.Todo;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -18,29 +19,33 @@ public class TodoRepository {
     public List<Todo> findAll(int limit, int offset) {
         return jdbcTemplate.query(
                 "SELECT * FROM todos ORDER BY id LIMIT ? OFFSET ?",
-                new Object[]{limit, offset},
                 (rs, rowNum) -> new Todo(
                         rs.getLong("id"),
                         rs.getString("description"),
                         Todo.Status.valueOf(rs.getString("status")),
                         rs.getTimestamp("created_at"),
                         rs.getTimestamp("updated_at")
-                )
+                ),
+                limit, offset
         );
     }
 
     public Todo findById(Long id) {
-        return jdbcTemplate.queryForObject(
-                "SELECT * FROM todos WHERE id = ?",
-                new Object[]{id},
-                (rs, rowNum) -> new Todo(
-                        rs.getLong("id"),
-                        rs.getString("description"),
-                        Todo.Status.valueOf(rs.getString("status")),
-                        rs.getTimestamp("created_at"),
-                        rs.getTimestamp("updated_at")
-                )
-        );
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT * FROM todos WHERE id = ?",
+                    (rs, rowNum) -> new Todo(
+                            rs.getLong("id"),
+                            rs.getString("description"),
+                            Todo.Status.valueOf(rs.getString("status")),
+                            rs.getTimestamp("created_at"),
+                            rs.getTimestamp("updated_at")
+                    ),
+                    id
+            );
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 
     public Todo save(Todo todo) {
